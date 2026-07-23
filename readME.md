@@ -32,7 +32,7 @@ This system handles peak traffic by:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/orders` | Create a new order |
+| POST | `/api/v1/orders` | Create a new order |
 | GET | `/orders/:id` | Get order details |
 | GET | `/health` | Health check |
 
