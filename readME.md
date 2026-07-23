@@ -32,7 +32,7 @@ This system handles peak traffic by:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/orders` | Create a new order |
+| POST | `/api/v1/orders` | Create a new order |
 | GET | `/orders/:id` | Get order details |
 | GET | `/health` | Health check |
 
@@ -48,7 +48,7 @@ This system handles peak traffic by:
 
 ```bash
 git clone https://github.com/sunilsinghx/order-processing
-cd order-processing-system
+cd order-processing
 ```
 
 ### 2. Create Environment File
