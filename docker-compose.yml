@@ -1,0 +1,134 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: eda-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - eda-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: eda-rabbitmq
+    ports:
+      - "5672:5672"   
+      - "15672:15672" 
+      - "5552:5552"
+      - "15692:15692"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - eda-network
+  postgres:
+    image: postgres:16
+    container_name: order-postgres
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: orderdb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - eda-network
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: eda-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - eda-network
+    depends_on:
+      - rabbitmq
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: eda-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin 
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - eda-network
+    depends_on:
+      - prometheus
+  api:
+    build:
+      context: .
+      dockerfile: ./docker/api.Dockerfile
+    container_name: api
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis:6379
+      - APP_ENV=docker
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - DB_HOST=postgres
+    networks:
+      - eda-network
+    depends_on:
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+  worker:
+    build:
+      context: .
+      dockerfile: ./docker/worker.Dockerfile
+    container_name: worker
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - DB_HOST=postgres
+    networks:
+      - eda-network
+    depends_on:
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    
+networks:
+  eda-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+  rabbitmq_data:
+  prometheus_data:
+  grafana_data:
+  postgres_data:
