@@ -48,7 +48,7 @@ This system handles peak traffic by:
 
 ```bash
 git clone https://github.com/sunilsinghx/order-processing
-cd order-processing-system
+cd order-processing
 ```
 
 ### 2. Create Environment File
